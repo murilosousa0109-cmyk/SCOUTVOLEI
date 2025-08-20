@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vôlei Scout App - Final</title>
+    <!-- Inclui o Tailwind CSS para estilização moderna -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inclui a fonte Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos personalizados para o corpo e a fonte */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Oculta os spinners de input de número */
+        .no-spinners::-webkit-outer-spin-button,
+        .no-spinners::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .no-spinners {
+            -moz-appearance: textfield;
+        }
+        /* Efeito de expansão suave para o container de estatísticas */
+        .stats-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .stats-container.expanded {
+            max-height: 2000px; /* Valor alto para acomodar o conteúdo */
+        }
+        /* Rotação para o ícone de seta */
+        .rotate-90 {
+            transform: rotate(90deg);
+        }
+        .chevron-transition {
+            transition: transform 0.3s ease-in-out;
+        }
+        /* Tamanho da fonte para o placar principal */
+        .scoreboard-score {
+            font-size: 4rem;
+            line-height: 1;
+            font-weight: 700;
+        }
+        @media (min-width: 768px) {
+            .scoreboard-score {
+                font-size: 6rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 min-h-screen flex items-start justify-center">
+    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-8">
+
+        <!-- Header da Aplicação -->
+        <header class="text-center space-y-2">
+            <h1 class="text-4xl font-bold text-gray-800">Vôlei Scout App</h1>
+            <p class="text-gray-500">
+                Acompanhe e analise as estatísticas do seu time.
+            </p>
+            <div class="flex justify-center gap-4 pt-4 flex-wrap">
+                <button id="add-game-btn"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-full transition-colors duration-200 shadow-md flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-plus">
+                        <path d="M5 12h14" />
+                        <path d="M12 5v14" />
+                    </svg>
+                    Novo Jogo
+                </button>
+                <button id="add-player-btn"
+                    class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-full transition-colors duration-200 shadow-md flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-user-plus">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <line x1="19" x2="19" y1="8" y2="14" />
+                        <line x1="22" x2="16" y1="11" y2="11" />
+                    </svg>
+                    Cadastrar Jogador
+                </button>
+            </div>
+        </header>
+
+        <!-- Seção Principal -->
+        <main class="space-y-6">
+            <!-- Seção de Jogos -->
+            <section id="games-list-section" class="space-y-4">
+                <h2 class="text-2xl font-semibold text-gray-800">Jogos</h2>
+                <div id="games-list" class="space-y-4">
+                    <!-- Cards de jogos serão renderizados aqui pelo JS -->
+                </div>
+            </section>
+
+            <!-- Seção de Jogadores -->
+            <section id="players-list-section" class="space-y-4">
+                <h2 class="text-2xl font-semibold text-gray-800">Jogadores Cadastrados</h2>
+                <div id="players-list" class="space-y-4">
+                    <!-- Jogadores serão renderizados aqui pelo JS -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Modais da aplicação (pop-ups) -->
+
+        <!-- Modal de Adicionar Novo Jogo -->
+        <div id="add-game-modal"
+            class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+            <div
+                class="relative bg-white rounded-lg shadow-xl p-6 md:p-8 w-11/12 md:w-2/3 lg:w-1/2 max-h-screen overflow-y-auto">
+                <h3 class="text-2xl font-bold mb-4">Adicionar Novo Jogo</h3>
+                <form id="add-game-form" class="space-y-4">
+                    <div>
+                        <label for="game-name" class="block text-gray-700">Nome do Jogo</label>
+                        <input type="text" id="game-name"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-2"
+                            required>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" id="close-add-game-modal-btn"
+                            class="bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md hover:bg-gray-400 transition-colors duration-200">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                            class="bg-blue-600 text-white font-medium py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200">
+                            Criar Jogo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Adicionar Jogadores a um Jogo -->
+        <div id="add-players-modal"
+            class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+            <div
+                class="relative bg-white rounded-lg shadow-xl p-6 md:p-8 w-11/12 md:w-2/3 lg:w-1/2 max-h-screen overflow-y-auto">
+                <h3 class="text-2xl font-bold mb-4">Adicionar Jogadores ao Jogo</h3>
+                <div id="players-selection-list" class="space-y-2 max-h-60 overflow-y-auto">
+                    <!-- Jogadores serão listados aqui para seleção pelo JS -->
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" id="close-add-players-modal-btn"
+                        class="bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md hover:bg-gray-400 transition-colors duration-200">
+                        Cancelar
+                    </button>
+                    <button type="button" id="save-players-to-game-btn"
+                        class="bg-blue-600 text-white font-medium py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200">
+                        Adicionar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Estatísticas do Jogo -->
+        <div id="game-stats-modal"
+            class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+            <div
+                class="relative bg-white rounded-lg shadow-xl p-6 md:p-8 w-11/12 md:w-2/3 lg:w-1/2 max-h-screen overflow-y-auto">
+                <h3 class="text-2xl font-bold mb-4 text-center">Estatísticas do Jogo</h3>
+                <div class="space-y-4">
+                    <!-- Resumo do Jogo -->
+                    <div class="bg-gray-50 rounded-lg p-4 shadow-sm">
+                        <h4 class="text-xl font-bold mb-2">Resumo Geral</h4>
+                        <div id="overall-stats" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <!-- Estatísticas totais serão injetadas aqui pelo JS -->
+                        </div>
+                    </div>
+
+                    <!-- Estatísticas por Jogador -->
+                    <div class="bg-gray-50 rounded-lg p-4 shadow-sm">
+                        <h4 class="text-xl font-bold mb-2">Estatísticas por Jogador</h4>
+                        <select id="player-stats-select"
+                            class="w-full p-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 mb-4">
+                            <option value="">Selecione um jogador...</option>
+                        </select>
+                        <div id="player-individual-stats" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            <!-- Estatísticas individuais serão injetadas aqui pelo JS -->
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-center mt-6 gap-4 flex-wrap">
+                    <button id="export-stats-btn"
+                        class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-full transition-colors duration-200 flex items-center gap-2 shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-file-text">
+                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                            <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                            <path d="M10 9H8" />
+                            <path d="M16 13H8" />
+                            <path d="M16 17H8" />
+                        </svg>
+                        Exportar para CSV
+                    </button>
+                    <button type="button" id="close-game-stats-modal-btn"
+                        class="bg-blue-600 text-white font-medium py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Adicionar/Editar Jogador -->
+        <div id="player-modal"
+            class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+            <div
+                class="relative bg-white rounded-lg shadow-xl p-6 md:p-8 w-11/12 md:w-2/3 lg:w-1/2 max-h-screen overflow-y-auto">
+                <h3 id="modal-title" class="text-2xl font-bold mb-4">Adicionar Jogador</h3>
+                <form id="player-form" class="space-y-4">
+                    <div>
+                        <label for="player-name" class="block text-gray-700">Nome do Jogador</label>
+                        <input type="text" id="player-name"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-2"
+                            required>
+                    </div>
+                    <div>
+                        <label for="player-position" class="block text-gray-700">Posição</label>
+                        <select id="player-position"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-2">
+                            <option value="">Selecione a Posição</option>
+                            <option value="Levantador">Levantador</option>
+                            <option value="Oposto">Oposto</option>
+                            <option value="Ponteiro">Ponteiro</option>
+                            <option value="Central">Central</option>
+                            <option value="Líbero">Líbero</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="player-height" class="block text-gray-700">Altura (cm)</label>
+                        <input type="number" id="player-height"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-2 no-spinners">
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" id="close-player-modal-btn"
+                            class="bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md hover:bg-gray-400 transition-colors duration-200">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                            class="bg-blue-600 text-white font-medium py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200">
+                            Salvar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmação (customizado) -->
+        <div id="confirm-modal"
+            class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+            <div class="relative bg-white rounded-lg shadow-xl p-6 w-11/12 md:w-1/3 text-center space-y-4">
+                <h3 class="text-xl font-bold text-gray-800">Confirmar Ação</h3>
+                <p id="confirm-message" class="text-gray-600">Tem certeza que deseja fazer isso?</p>
+                <div class="flex justify-center gap-4">
+                    <button id="confirm-cancel-btn"
+                        class="bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md hover:bg-gray-400 transition-colors duration-200">
+                        Cancelar
+                    </button>
+                    <button id="confirm-ok-btn"
+                        class="bg-red-600 text-white font-medium py-2 px-4 rounded-md hover:bg-red-700 transition-colors duration-200">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Mensagem (customizado) -->
+        <div id="message-modal"
+            class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+            <div class="relative bg-white rounded-lg shadow-xl p-6 w-11/12 md:w-1/3 text-center space-y-4">
+                <h3 id="message-title" class="text-xl font-bold text-gray-800"></h3>
+                <p id="message-text" class="text-gray-600"></p>
+                <div class="flex justify-center">
+                    <button id="message-ok-btn"
+                        class="bg-blue-600 text-white font-medium py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Seletores de elementos e variáveis de estado
+        const addGameBtn = document.getElementById('add-game-btn');
+        const addPlayerBtn = document.getElementById('add-player-btn');
+        const gamesList = document.getElementById('games-list');
+        const playersList = document.getElementById('players-list');
+        const addGameModal = document.getElementById('add-game-modal');
+        const addPlayersModal = document.getElementById('add-players-modal');
+        const gameStatsModal = document.getElementById('game-stats-modal');
+        const overallStatsDiv = document.getElementById('overall-stats');
+        const playerStatsSelect = document.getElementById('player-stats-select');
+        const playerIndividualStatsDiv = document.getElementById('player-individual-stats');
+        const playersSelectionList = document.getElementById('players-selection-list');
+        const playerModal = document.getElementById('player-modal');
+        const confirmModal = document.getElementById('confirm-modal');
+        const messageModal = document.getElementById('message-modal');
+
+        const addGameForm = document.getElementById('add-game-form');
+        const gameNameInput = document.getElementById('game-name');
+        const playerForm = document.getElementById('player-form');
+        const modalTitle = document.getElementById('modal-title');
+        const playerNameInput = document.getElementById('player-name');
+        const playerPositionSelect = document.getElementById('player-position');
+        const playerHeightInput = document.getElementById('player-height');
+        const confirmMessage = document.getElementById('confirm-message');
+        const messageTitle = document.getElementById('message-title');
+        const messageText = document.getElementById('message-text');
+
+        // Armazenamento de dados no LocalStorage
+        let players = JSON.parse(localStorage.getItem('volleyball_players')) || [];
+        let games = JSON.parse(localStorage.getItem('volleyball_games')) || [];
+        let currentEditingPlayerId = null;
+        let currentEditingGameId = null;
+
+        // Funções utilitárias para modais (mostrar/ocultar)
+        function showModal(modal) {
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+        }
+
+        function hideModal(modal) {
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // Função para mostrar modal de confirmação
+        function showConfirm(message, callback) {
+            if (confirmMessage && confirmModal) {
+                confirmMessage.textContent = message;
+                showModal(confirmModal);
+                document.getElementById('confirm-ok-btn').onclick = () => {
+                    hideModal(confirmModal);
+                    callback(true);
+                };
+                document.getElementById('confirm-cancel-btn').onclick = () => {
+                    hideModal(confirmModal);
+                    callback(false);
+                };
+            }
+        }
+
+        // Função para mostrar modal de mensagem
+        function showMessage(title, message, callback = () => {}) {
+            if (messageTitle && messageText && messageModal) {
+                messageTitle.textContent = title;
+                messageText.textContent = message;
+                showModal(messageModal);
+                document.getElementById('message-ok-btn').onclick = () => {
+                    hideModal(messageModal);
+                    callback();
+                };
+            }
+        }
+
+        // Funções de gerenciamento de dados
+        function savePlayers() {
+            localStorage.setItem('volleyball_players', JSON.stringify(players));
+        }
+
+        function saveGames() {
+            localStorage.setItem('volleyball_games', JSON.stringify(games));
+        }
+
+        // Lógica do Placar - Funções de correção
+        function handleScoreUpdate(gameId, team, value) {
+            const game = games.find(g => g.id === gameId);
+            if (!game || !game.scoreboard || !game.scoreboard[team]) return;
+
+            game.scoreboard[team].score += value;
+            if (game.scoreboard[team].score < 0) {
+                game.scoreboard[team].score = 0;
+            }
+            saveGames();
+            updateScoreboardDisplay(gameId);
+        }
+
+        function handleSetWin(gameId, team) {
+            const game = games.find(g => g.id === gameId);
+            if (!game || !game.scoreboard || !game.scoreboard[team]) return;
+
+            game.scoreboard[team].sets += 1;
+            game.scoreboard.teamA.score = 0;
+            game.scoreboard.teamB.score = 0;
+            saveGames();
+            updateScoreboardDisplay(gameId);
+        }
+
+        function handleTeamNameUpdate(gameId, team, newName) {
+            const game = games.find(g => g.id === gameId);
+            if (!game || !game.scoreboard || !game.scoreboard[team]) return;
+            game.scoreboard[team].name = newName;
+            saveGames();
+        }
+
+        function handleResetScoreboard(gameId) {
+            const game = games.find(g => g.id === gameId);
+            if (!game || !game.scoreboard) return;
+
+            showConfirm('Tem certeza que deseja reiniciar o placar (pontos e sets)?', (confirmed) => {
+                if (confirmed) {
+                    game.scoreboard.teamA.score = 0;
+                    game.scoreboard.teamB.score = 0;
+                    game.scoreboard.teamA.sets = 0;
+                    game.scoreboard.teamB.sets = 0;
+                    saveGames();
+                    updateScoreboardDisplay(gameId);
+                }
+            });
+        }
+        
+        function updateScoreboardDisplay(gameId) {
+            const game = games.find(g => g.id === gameId);
+            if (!game) return;
+
+            const gameCard = document.getElementById(`game-${gameId}`);
+            if (!gameCard) return;
+
+            const teamA = game.scoreboard?.teamA || {};
+            const teamB = game.scoreboard?.teamB || {};
+
+            gameCard.querySelector(`.scoreboard-score[data-team="A"]`).textContent = teamA.score || 0;
+            gameCard.querySelector(`.scoreboard-score[data-team="B"]`).textContent = teamB.score || 0;
+            gameCard.querySelector(`#setsA-display`).textContent = teamA.sets || 0;
+            gameCard.querySelector(`#setsB-display`).textContent = teamB.sets || 0;
+        }
+
+        // Renderização de jogadores no DOM
+        function renderPlayers() {
+            playersList.innerHTML = '';
+            if (players.length === 0) {
+                playersList.innerHTML = `
+                    <p class="text-gray-500 text-center py-4">Nenhum jogador cadastrado. Clique em "Cadastrar Jogador" para começar.</p>
+                `;
+                return;
+            }
+            players.forEach(player => {
+                const playerCard = document.createElement('div');
+                playerCard.className = 'bg-gray-50 rounded-2xl p-4 shadow-md flex justify-between items-center';
+                playerCard.innerHTML = `
+                    <div>
+                        <p class="font-bold text-gray-800">${player.name}</p>
+                        <p class="text-sm text-gray-500">${player.position || 'Sem Posição'}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="edit-player-btn bg-gray-200 text-gray-800 font-medium py-1 px-3 rounded-md hover:bg-gray-300 transition-colors duration-200" data-player-id="${player.id}">
+                            Editar
+                        </button>
+                        <button class="delete-player-btn bg-red-600 text-white font-medium py-1 px-3 rounded-md hover:bg-red-700 transition-colors duration-200" data-player-id="${player.id}">
+                            Excluir
+                        </button>
+                    </div>
+                `;
+                playersList.appendChild(playerCard);
+            });
+        }
+
+        // Renderização de jogos no DOM
+        function renderGames() {
+            gamesList.innerHTML = '';
+            if (games.length === 0) {
+                gamesList.innerHTML = `
+                    <p class="text-gray-500 text-center py-4">Nenhum jogo cadastrado. Clique em "Novo Jogo" para começar.</p>
+                `;
+                return;
+            }
+
+            games.forEach(game => {
+                const gameCard = document.createElement('div');
+                gameCard.id = `game-${game.id}`;
+                gameCard.className = 'bg-gray-50 rounded-2xl p-6 shadow-md transition-shadow duration-200 hover:shadow-lg space-y-4';
+
+                let playersInGameHtml = '';
+                if (game.players.length > 0) {
+                    playersInGameHtml = game.players.map(player => {
+                        let statsHtml = '';
+                        for (const [statName, values] of Object.entries(player.stats)) {
+                            const total = values.certos + values.errados;
+                            const performance = total > 0 ? ((values.certos / total) * 100).toFixed(1) : '0';
+
+                            statsHtml += `
+                                <div class="flex flex-col items-center p-2 rounded-md bg-gray-100" data-stat-name="${statName}">
+                                    <span class="text-sm font-medium text-gray-700">${statName.charAt(0).toUpperCase() + statName.slice(1)}</span>
+                                    <div class="flex gap-2 items-center">
+                                        <div class="text-center">
+                                            <p class="text-xl font-bold text-green-600" data-stat-type="certos">${values.certos}</p>
+                                            <span class="text-xs text-green-600">Certo</span>
+                                        </div>
+                                        <div class="text-center">
+                                            <p class="text-xl font-bold text-red-600" data-stat-type="errados">${values.errados}</p>
+                                            <span class="text-xs text-red-600">Errado</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-2 mt-2 flex-wrap justify-center">
+                                        <button class="update-stat-btn bg-green-500 text-white w-8 h-8 rounded-full text-lg font-bold hover:bg-green-600 transition-colors duration-200 shadow-sm" data-game-id="${game.id}" data-player-id="${player.playerId}" data-stat-name="${statName}" data-stat-type="certos" data-value="1">+</button>
+                                        <button class="update-stat-btn bg-green-300 text-white w-8 h-8 rounded-full text-lg font-bold hover:bg-green-400 transition-colors duration-200 shadow-sm" data-game-id="${game.id}" data-player-id="${player.playerId}" data-stat-name="${statName}" data-stat-type="certos" data-value="-1">-</button>
+                                        <button class="update-stat-btn bg-red-500 text-white w-8 h-8 rounded-full text-lg font-bold hover:bg-red-600 transition-colors duration-200 shadow-sm" data-game-id="${game.id}" data-player-id="${player.playerId}" data-stat-name="${statName}" data-stat-type="errados" data-value="1">+</button>
+                                        <button class="update-stat-btn bg-red-300 text-white w-8 h-8 rounded-full text-lg font-bold hover:bg-red-400 transition-colors duration-200 shadow-sm" data-game-id="${game.id}" data-player-id="${player.playerId}" data-stat-name="${statName}" data-stat-type="errados" data-value="-1">-</button>
+                                    </div>
+                                    <p class="mt-2 text-base font-semibold text-gray-800 performance-text">Desempenho: ${performance}%</p>
+                                </div>
+                            `;
+                        }
+
+                        return `
+                            <div class="bg-white p-4 rounded-lg shadow-sm space-y-2 mt-4" data-player-id="${player.playerId}">
+                                <div class="flex justify-between items-center">
+                                    <p class="font-semibold text-gray-800">${player.playerName}</p>
+                                    <button class="remove-player-from-game-btn text-red-500 hover:text-red-700 transition-colors duration-200 p-1 rounded-md" data-game-id="${game.id}" data-player-id="${player.playerId}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-minus"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-2">
+                                    ${statsHtml}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    playersInGameHtml = `
+                        <p class="text-gray-500 text-center py-4">Nenhum jogador neste jogo. Clique em "Adicionar Jogadores" para começar.</p>
+                    `;
+                }
+
+                const scoreboard = {
+                    teamA: {
+                        name: game.scoreboard?.teamA?.name || 'Time A',
+                        score: game.scoreboard?.teamA?.score || 0,
+                        sets: game.scoreboard?.teamA?.sets || 0
+                    },
+                    teamB: {
+                        name: game.scoreboard?.teamB?.name || 'Time B',
+                        score: game.scoreboard?.teamB?.score || 0,
+                        sets: game.scoreboard?.teamB?.sets || 0
+                    }
+                };
+
+                gameCard.innerHTML = `
+                    <div class="flex justify-between items-center cursor-pointer game-card-header" data-game-id="${game.id}">
+                        <div class="flex items-center gap-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-volleyball text-gray-400"><circle cx="12" cy="12" r="10"/><path d="M12 1.5V12"/><path d="M7 10.75l5 1.25l-5 1.25-5 1.25zM12 12l5-1.25l5 1.25L12 12zM12 12l-5 1.25-5 1.25L12 12zM12 12l5 1.25L12 12z"/></svg>
+                            <div>
+                                <p class="font-bold text-xl text-gray-800">${game.name}</p>
+                                <p class="text-sm text-gray-500">${game.date}</p>
+                            </div>
+                        </div>
+                        <svg class="chevron-icon text-gray-500 w-6 h-6 chevron-transition" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg>
+                    </div>
+
+                    <!-- Container de estatísticas expansível para o jogo -->
+                    <div class="stats-container space-y-4" id="stats-container-${game.id}">
+                        <div class="border-t border-gray-200 pt-4">
+
+                            <!-- Placar de Voleibol -->
+                            <div class="bg-slate-800 text-white rounded-lg shadow-xl p-4 md:p-6 mb-8 flex flex-col items-center">
+                                <div class="flex justify-between w-full mb-4">
+                                    <!-- Placar Time A -->
+                                    <div class="flex flex-col items-center w-1/2">
+                                        <input type="text" value="${scoreboard.teamA.name}" data-game-id="${game.id}" data-team="A"
+                                            class="team-name-input bg-transparent text-white text-center font-bold text-lg md:text-2xl border-b border-gray-500 focus:outline-none focus:border-white transition-colors w-full"
+                                            oninput="handleTeamNameUpdate('${game.id}', 'teamA', this.value);">
+                                        <span data-game-id="${game.id}" data-team="A" class="scoreboard-score text-blue-400 mt-2">${scoreboard.teamA.score}</span>
+                                    </div>
+                                    <!-- Separador de Sets -->
+                                    <div class="flex flex-col items-center justify-center mx-2 text-gray-400">
+                                        <span class="text-4xl font-bold mb-1">-</span>
+                                        <div class="flex gap-2 text-base font-semibold">
+                                            <span class="text-lg" data-game-id="${game.id}" data-team="A" id="setsA-display">${scoreboard.teamA.sets}</span>
+                                            <span class="text-lg">:</span>
+                                            <span class="text-lg" data-game-id="${game.id}" data-team="B" id="setsB-display">${scoreboard.teamB.sets}</span>
+                                        </div>
+                                    </div>
+                                    <!-- Placar Time B -->
+                                    <div class="flex flex-col items-center w-1/2">
+                                        <input type="text" value="${scoreboard.teamB.name}" data-game-id="${game.id}" data-team="B"
+                                            class="team-name-input bg-transparent text-white text-center font-bold text-lg md:text-2xl border-b border-gray-500 focus:outline-none focus:border-white transition-colors w-full"
+                                            oninput="handleTeamNameUpdate('${game.id}', 'teamB', this.value);">
+                                        <span data-game-id="${game.id}" data-team="B" class="scoreboard-score text-red-400 mt-2">${scoreboard.teamB.score}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Botões de Controle do Placar -->
+                                <div class="flex justify-center gap-4 w-full">
+                                    <div class="flex flex-col items-center w-1/2">
+                                        <div class="flex gap-2">
+                                            <button class="bg-gray-600 text-white py-2 px-4 rounded-full text-lg font-bold hover:bg-gray-700 transition-colors shadow-sm" onclick="handleScoreUpdate('${game.id}', 'teamA', -1)">-</button>
+                                            <button class="bg-blue-600 text-white py-2 px-4 rounded-full text-lg font-bold hover:bg-blue-700 transition-colors shadow-sm" onclick="handleScoreUpdate('${game.id}', 'teamA', 1)">+</button>
+                                        </div>
+                                        <button class="bg-blue-400 text-white font-medium py-1 px-4 rounded-full mt-2 hover:bg-blue-500 transition-colors shadow-sm" onclick="handleSetWin('${game.id}', 'teamA')">Venceu Set</button>
+                                    </div>
+                                    <div class="flex flex-col items-center w-1/2">
+                                        <div class="flex gap-2">
+                                            <button class="bg-gray-600 text-white py-2 px-4 rounded-full text-lg font-bold hover:bg-gray-700 transition-colors shadow-sm" onclick="handleScoreUpdate('${game.id}', 'teamB', -1)">-</button>
+                                            <button class="bg-red-600 text-white py-2 px-4 rounded-full text-lg font-bold hover:bg-red-700 transition-colors shadow-sm" onclick="handleScoreUpdate('${game.id}', 'teamB', 1)">+</button>
+                                        </div>
+                                        <button class="bg-red-400 text-white font-medium py-1 px-4 rounded-full mt-2 hover:bg-red-500 transition-colors shadow-sm" onclick="handleSetWin('${game.id}', 'teamB')">Venceu Set</button>
+                                    </div>
+                                </div>
+                                <button class="bg-gray-500 text-white font-medium py-2 px-4 rounded-full mt-4 hover:bg-gray-600 transition-colors duration-200 shadow-md flex items-center gap-2" onclick="handleResetScoreboard('${game.id}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw"><path d="M3 12a9 9 0 1 0 9-9c-2.88 0-5.42 1.04-7.32 2.72"/><path d="M7 3v4H3"/></svg>
+                                    Reiniciar Placar
+                                </button>
+                            </div>
+
+                            <div class="flex flex-wrap justify-end gap-2 mb-4">
+                                <button class="add-players-to-game-btn bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-full transition-colors duration-200 flex items-center gap-2 shadow-md" data-game-id="${game.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-plus"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+                                    Adicionar Jogadores
+                                </button>
+                                <button class="view-stats-btn bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-full transition-colors duration-200 flex items-center gap-2 shadow-md" data-game-id="${game.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bar-chart-2"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+                                    Ver Estatísticas
+                                </button>
+                                <button class="delete-game-btn bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-full transition-colors duration-200 flex items-center gap-2 shadow-md" data-game-id="${game.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                                    Excluir Jogo
+                                </button>
+                            </div>
+                            <div class="space-y-4">
+                                ${playersInGameHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                gamesList.appendChild(gameCard);
+
+                // Adicionar listeners de eventos para expandir/colapsar os cards
+                const header = gameCard.querySelector('.game-card-header');
+                if (header) {
+                    header.addEventListener('click', () => {
+                        const statsContainer = gameCard.querySelector('.stats-container');
+                        const chevronIcon = gameCard.querySelector('.chevron-icon');
+                        if (statsContainer && chevronIcon) {
+                            statsContainer.classList.toggle('expanded');
+                            chevronIcon.classList.toggle('rotate-90');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Funções para renderizar estatísticas no modal
+        function renderOverallStats(game) {
+            const totalStats = {
+                saques: { certos: 0, errados: 0 },
+                ataques: { certos: 0, errados: 0 },
+                bloqueios: { certos: 0, errados: 0 },
+                recepcoes: { certos: 0, errados: 0 },
+                passe: { certos: 0, errados: 0 },
+                defesa: { certos: 0, errados: 0 }
+            };
+
+            game.players.forEach(player => {
+                for (const statName in player.stats) {
+                    totalStats[statName].certos += player.stats[statName].certos;
+                    totalStats[statName].errados += player.stats[statName].errados;
+                }
+            });
+
+            overallStatsDiv.innerHTML = '';
+            for (const [statName, values] of Object.entries(totalStats)) {
+                const total = values.certos + values.errados;
+                const performance = total > 0 ? ((values.certos / total) * 100).toFixed(1) : '0';
+                overallStatsDiv.innerHTML += `
+                    <div class="bg-white rounded-lg p-3 text-center shadow-sm">
+                        <p class="text-sm font-medium text-gray-600">${statName.charAt(0).toUpperCase() + statName.slice(1)}</p>
+                        <p class="text-xl font-bold text-gray-800">${values.certos} / ${total}</p>
+                        <p class="text-sm text-gray-500">Desempenho: ${performance}%</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderIndividualStats(player) {
+            playerIndividualStatsDiv.innerHTML = '';
+            if (!player) {
+                playerIndividualStatsDiv.innerHTML = `<p class="text-center text-gray-500 col-span-full">Selecione um jogador para ver as estatísticas.</p>`;
+                return;
+            }
+
+            for (const [statName, values] of Object.entries(player.stats)) {
+                const total = values.certos + values.errados;
+                const performance = total > 0 ? ((values.certos / total) * 100).toFixed(1) : '0';
+                playerIndividualStatsDiv.innerHTML += `
+                    <div class="bg-white rounded-lg p-3 text-center shadow-sm">
+                        <p class="text-sm font-medium text-gray-600">${statName.charAt(0).toUpperCase() + statName.slice(1)}</p>
+                        <p class="text-xl font-bold text-gray-800">${values.certos} / ${total}</p>
+                        <p class="text-sm text-gray-500">Desempenho: ${performance}%</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Função para atualizar a exibição de uma estatística individual
+        function updateStatDisplay(gameId, playerId, statName) {
+            const game = games.find(g => g.id === gameId);
+            const player = game.players.find(p => p.playerId === playerId);
+            if (!game || !player) return;
+
+            const gameCard = document.getElementById(`game-${gameId}`);
+            if (!gameCard) return;
+
+            const statContainer = gameCard.querySelector(`[data-player-id="${playerId}"] [data-stat-name="${statName}"]`);
+            if (!statContainer) return;
+
+            const certosText = statContainer.querySelector('[data-stat-type="certos"]');
+            const erradosText = statContainer.querySelector('[data-stat-type="errados"]');
+            const performanceText = statContainer.querySelector('.performance-text');
+
+            const certos = player.stats[statName].certos;
+            const errados = player.stats[statName].errados;
+            const total = certos + errados;
+            const performance = total > 0 ? ((certos / total) * 100).toFixed(1) : '0';
+
+            certosText.textContent = certos;
+            erradosText.textContent = errados;
+            performanceText.textContent = `Desempenho: ${performance}%`;
+        }
+
+        // Lógica de atualização de estatísticas
+        function updateStat(gameId, playerId, stat, type, value) {
+            const game = games.find(g => g.id === gameId);
+            if (!game) return;
+            const player = game.players.find(p => p.playerId === playerId);
+            if (!player) return;
+
+            if (player.stats[stat][type] + value >= 0) {
+                player.stats[stat][type] += value;
+                saveGames();
+                updateStatDisplay(gameId, playerId, stat);
+            }
+        }
+
+        // Função para exportar para CSV
+        function exportGameStatsToCsv(gameId) {
+            const game = games.find(g => g.id === gameId);
+            if (!game) {
+                showMessage('Erro', 'Jogo não encontrado para exportação.');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+
+            csvContent += `Estatísticas do Jogo,${game.name}\n`;
+            csvContent += `Data,${game.date}\n`;
+
+            const scoreboard = game.scoreboard || {};
+            const teamA = scoreboard.teamA || {};
+            const teamB = scoreboard.teamB || {};
+
+            csvContent += `Placar Final,${teamA.name || 'Time A'},${teamB.name || 'Time B'}\n`;
+            csvContent += `Sets,${teamA.sets || 0},${teamB.sets || 0}\n`;
+            csvContent += `Pontos,${teamA.score || 0},${teamB.score || 0}\n`;
+
+            csvContent += "\n";
+
+            const overallStats = {
+                saques: { certos: 0, errados: 0 },
+                ataques: { certos: 0, errados: 0 },
+                bloqueios: { certos: 0, errados: 0 },
+                recepcoes: { certos: 0, errados: 0 },
+                passe: { certos: 0, errados: 0 },
+                defesa: { certos: 0, errados: 0 }
+            };
+
+            game.players.forEach(player => {
+                for (const statName in player.stats) {
+                    overallStats[statName].certos += player.stats[statName].certos;
+                    overallStats[statName].errados += player.stats[statName].errados;
+                }
+            });
+
+            csvContent += "Resumo Geral\n";
+            csvContent += "Estatística,Certos,Errados,Total,Desempenho (%)\n";
+            for (const [statName, values] of Object.entries(overallStats)) {
+                const total = values.certos + values.errados;
+                const performance = total > 0 ? ((values.certos / total) * 100).toFixed(1) : '0';
+                csvContent += `${statName.charAt(0).toUpperCase() + statName.slice(1)},${values.certos},${values.errados},${total},${performance}\n`;
+            }
+            csvContent += "\n";
+
+            csvContent += "Estatísticas por Jogador\n";
+            csvContent += "Jogador,Estatística,Certos,Errados,Total,Desempenho (%)\n";
+            game.players.forEach(player => {
+                for (const [statName, values] of Object.entries(player.stats)) {
+                    const total = values.certos + values.errados;
+                    const performance = total > 0 ? ((values.certos / total) * 100).toFixed(1) : '0';
+                    csvContent += `${player.playerName},${statName.charAt(0).toUpperCase() + statName.slice(1)},${values.certos},${values.errados},${total},${performance}\n`;
+                }
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `estatisticas_${game.name.replace(/\s/g, '_')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Listeners de eventos
+        document.addEventListener('DOMContentLoaded', () => {
+            // Lidar com a abertura e fechamento dos modais
+            addPlayerBtn.addEventListener('click', () => {
+                modalTitle.textContent = "Adicionar Jogador";
+                currentEditingPlayerId = null;
+                playerForm.reset();
+                showModal(playerModal);
+            });
+
+            addGameBtn.addEventListener('click', () => {
+                addGameForm.reset();
+                showModal(addGameModal);
+            });
+
+            document.getElementById('close-player-modal-btn').addEventListener('click', () => {
+                hideModal(playerModal);
+            });
+
+            document.getElementById('close-add-game-modal-btn').addEventListener('click', () => {
+                hideModal(addGameModal);
+            });
+
+            document.getElementById('close-add-players-modal-btn').addEventListener('click', () => {
+                hideModal(addPlayersModal);
+            });
+
+            document.getElementById('close-game-stats-modal-btn').addEventListener('click', () => {
+                hideModal(gameStatsModal);
+            });
+
+            // Exportar estatísticas para CSV
+            document.getElementById('export-stats-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentEditingGameId) {
+                    exportGameStatsToCsv(currentEditingGameId);
+                } else {
+                    showMessage('Erro', 'Nenhum jogo selecionado para exportação.');
+                }
+            });
+
+            // Lidar com a seleção de jogadores no modal de estatísticas
+            playerStatsSelect.addEventListener('change', (e) => {
+                const selectedPlayerId = e.target.value;
+                const game = games.find(g => g.id === currentEditingGameId);
+                const selectedPlayer = game ? game.players.find(p => p.playerId === selectedPlayerId) : null;
+                renderIndividualStats(selectedPlayer);
+            });
+
+            // Lidar com o envio do formulário de adicionar/editar jogador
+            playerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = playerNameInput.value.trim();
+                const position = playerPositionSelect.value;
+                const height = parseInt(playerHeightInput.value, 10) || null;
+
+                if (!name) {
+                    showMessage('Erro', 'O nome do jogador é obrigatório.');
+                    return;
+                }
+
+                if (currentEditingPlayerId) {
+                    const playerIndex = players.findIndex(p => p.id === currentEditingPlayerId);
+                    if (playerIndex > -1) {
+                        players[playerIndex].name = name;
+                        players[playerIndex].position = position;
+                        players[playerIndex].height = height;
+                    }
+                } else {
+                    const newPlayer = {
+                        id: crypto.randomUUID(),
+                        name,
+                        position,
+                        height
+                    };
+                    players.push(newPlayer);
+                }
+                savePlayers();
+                renderPlayers();
+                hideModal(playerModal);
+            });
+
+            // Lidar com o envio do formulário de novo jogo
+            addGameForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const gameName = gameNameInput.value.trim();
+
+                if (!gameName) {
+                    showMessage('Erro', 'O nome do jogo é obrigatório.');
+                    return;
+                }
+
+                const newGame = {
+                    id: crypto.randomUUID(),
+                    name: gameName,
+                    date: new Date().toLocaleDateString('pt-BR'),
+                    scoreboard: {
+                        teamA: { name: 'Time A', score: 0, sets: 0 },
+                        teamB: { name: 'Time B', score: 0, sets: 0 }
+                    },
+                    players: []
+                };
+                games.push(newGame);
+                saveGames();
+                renderGames();
+                hideModal(addGameModal);
+            });
+
+            // Lidar com a adição de jogadores a um jogo
+            document.getElementById('save-players-to-game-btn').addEventListener('click', () => {
+                const selectedPlayerIds = Array.from(playersSelectionList.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.dataset.playerId);
+                const game = games.find(g => g.id === currentEditingGameId);
+
+                if (game) {
+                    selectedPlayerIds.forEach(playerId => {
+                        const player = players.find(p => p.id === playerId);
+                        if (player && !game.players.some(p => p.playerId === player.id)) {
+                            game.players.push({
+                                playerId: player.id,
+                                playerName: player.name,
+                                playerPosition: player.position,
+                                stats: {
+                                    saques: { certos: 0, errados: 0 },
+                                    ataques: { certos: 0, errados: 0 },
+                                    bloqueios: { certos: 0, errados: 0 },
+                                    recepcoes: { certos: 0, errados: 0 },
+                                    passe: { certos: 0, errados: 0 },
+                                    defesa: { certos: 0, errados: 0 }
+                                }
+                            });
+                        }
+                    });
+                    saveGames();
+                    renderGames();
+                }
+
+                hideModal(addPlayersModal);
+            });
+
+            // Listeners de eventos delegados para a lista de jogos
+            gamesList.addEventListener('click', (e) => {
+                const targetBtn = e.target.closest('button');
+                if (!targetBtn) return;
+
+                const gameId = targetBtn.dataset.gameId;
+                const game = games.find(g => g.id === gameId);
+
+                if (!game) {
+                    console.error('Erro: Jogo não encontrado para o ID fornecido.');
+                    return;
+                }
+
+                if (targetBtn.classList.contains('add-players-to-game-btn')) {
+                    currentEditingGameId = gameId;
+                    playersSelectionList.innerHTML = '';
+                    players.forEach(player => {
+                        const isAdded = game.players.some(p => p.playerId === player.id);
+                        playersSelectionList.innerHTML += `
+                            <label class="flex items-center gap-2 p-2 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200">
+                                <input type="checkbox" data-player-id="${player.id}" ${isAdded ? 'checked disabled' : ''}>
+                                <span>${player.name} (${player.position || 'Sem Posição'})</span>
+                            </label>
+                        `;
+                    });
+                    showModal(addPlayersModal);
+                } else if (targetBtn.classList.contains('view-stats-btn')) {
+                    currentEditingGameId = gameId;
+                    renderOverallStats(game);
+                    playerStatsSelect.innerHTML = '<option value="">Selecione um jogador...</option>';
+                    game.players.forEach(player => {
+                        const option = document.createElement('option');
+                        option.value = player.playerId;
+                        option.textContent = player.playerName;
+                        playerStatsSelect.appendChild(option);
+                    });
+                    renderIndividualStats(null);
+                    showModal(gameStatsModal);
+                } else if (targetBtn.classList.contains('delete-game-btn')) {
+                    showConfirm('Tem certeza que deseja excluir este jogo? Todas as estatísticas do jogo serão perdidas.', (confirmed) => {
+                        if (confirmed) {
+                            games = games.filter(g => g.id !== gameId);
+                            saveGames();
+                            renderGames();
+                            showMessage('Excluído', 'O jogo foi excluído com sucesso!');
+                        }
+                    });
+                } else if (targetBtn.classList.contains('remove-player-from-game-btn')) {
+                    const playerId = targetBtn.dataset.playerId;
+                    game.players = game.players.filter(p => p.playerId !== playerId);
+                    saveGames();
+                    renderGames();
+                } else if (targetBtn.classList.contains('update-stat-btn')) {
+                    const playerId = targetBtn.dataset.playerId;
+                    const statName = targetBtn.dataset.statName;
+                    const statType = targetBtn.dataset.statType;
+                    const value = parseInt(targetBtn.dataset.value, 10);
+                    updateStat(gameId, playerId, statName, statType, value);
+                }
+            });
+
+            // Listeners de eventos delegados para a lista de jogadores
+            playersList.addEventListener('click', (e) => {
+                const targetBtn = e.target.closest('button');
+                if (!targetBtn) return;
+
+                const playerId = targetBtn.dataset.playerId;
+
+                if (targetBtn.classList.contains('edit-player-btn')) {
+                    const player = players.find(p => p.id === playerId);
+                    if (player) {
+                        modalTitle.textContent = "Editar Jogador";
+                        currentEditingPlayerId = player.id;
+                        playerNameInput.value = player.name;
+                        playerPositionSelect.value = player.position;
+                        playerHeightInput.value = player.height || '';
+                        showModal(playerModal);
+                    }
+                } else if (targetBtn.classList.contains('delete-player-btn')) {
+                    showConfirm('Tem certeza que deseja excluir este jogador? Todas as estatísticas nos jogos serão mantidas, mas o nome do jogador será exibido como "(Jogador Excluído)".', (confirmed) => {
+                        if (confirmed) {
+                            players = players.filter(p => p.id !== playerId);
+                            savePlayers();
+                            renderPlayers();
+
+                            games.forEach(game => {
+                                const playerInGame = game.players.find(p => p.playerId === playerId);
+                                if (playerInGame) {
+                                    playerInGame.playerName = "(Jogador Excluído)";
+                                }
+                            });
+                            saveGames();
+                            renderGames();
+
+                            showMessage('Excluído', 'O jogador foi excluído com sucesso!');
+                        }
+                    });
+                }
+            });
+
+            // Renderização inicial
+            renderPlayers();
+            renderGames();
+        });
+    </script>
+</body>
+</html>
